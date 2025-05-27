@@ -1,1 +1,1 @@
-# SpiritedAwayCreativeProject
+# Spirited Away Creative Project
