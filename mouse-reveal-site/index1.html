@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mouse Reveal with Reverse Direction (Cover Mode)</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .top-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    #revealCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img id="topImage" src="bw-image.jpg" class="top-image">
+    <canvas id="revealCanvas"></canvas>
+  </div>
+  <script>
+    const canvas = document.getElementById("revealCanvas");
+    const ctx = canvas.getContext("2d");
+    const topImage = document.getElementById("topImage");
+
+    // Color image that will be revealed
+    const image = new Image();
+    image.src = "color-image.jpg";
+
+    // Ensure the canvas always covers the viewport.
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    let mouseX = 0;
+    let mouseY = 0;
+    let radius = 120;
+    let offsetX = 0;
+    let offsetY = 0;
+    let maxScrollX = 0;
+    let maxScrollY = 0;
+
+    // Use cover scaling to completely fill the viewport (cropping if necessary)
+    // and then increase the scale by 110%
+    function updateDimensions() {
+      resizeCanvas();
+      // Calculate base scale so the image covers the viewport
+      const baseScale = Math.max(window.innerWidth / image.width, window.innerHeight / image.height);
+      // Increase resolution to 110% by multiplying the base scale by 1.1
+      const scale = baseScale * 1.3;
+      
+      const scaledWidth = image.width * scale;
+      const scaledHeight = image.height * scale;
+
+      topImage.width = scaledWidth;
+      topImage.height = scaledHeight;
+
+      // Compute scroll boundaries from the scaled dimensions.
+      maxScrollX = Math.max(scaledWidth - window.innerWidth, 0);
+      maxScrollY = Math.max(scaledHeight - window.innerHeight, 0);
+
+      draw();
+    }
+
+    image.onload = () => {
+      updateDimensions();
+    };
+
+    window.addEventListener("resize", updateDimensions);
+
+    canvas.addEventListener("mousemove", (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+
+      const edgeThreshold = 50;
+
+      // Reverse horizontal scrolling:
+      if (mouseX < edgeThreshold && offsetX > 0) {
+        offsetX = Math.max(offsetX - 5, 0);
+      } else if (mouseX > window.innerWidth - edgeThreshold && offsetX < maxScrollX) {
+        offsetX = Math.min(offsetX + 5, maxScrollX);
+      }
+
+      // Reverse vertical scrolling:
+      if (mouseY < edgeThreshold && offsetY > 0) {
+        offsetY = Math.max(offsetY - 5, 0);
+      } else if (mouseY > window.innerHeight - edgeThreshold && offsetY < maxScrollY) {
+        offsetY = Math.min(offsetY + 5, maxScrollY);
+      }
+
+      // Move the top (BW) image using the updated offsets.
+      topImage.style.transform = `translate(-${offsetX}px, -${offsetY}px)`;
+
+      draw();
+    });
+
+    function draw() {
+      // Use the same increased resolution factor here.
+      const baseScale = Math.max(window.innerWidth / image.width, window.innerHeight / image.height);
+      const scale = baseScale * 1.3;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mouseX, mouseY, radius, 0, Math.PI * 2, false);
+      ctx.clip();
+      ctx.drawImage(image, -offsetX, -offsetY, image.width * scale, image.height * scale);
+      ctx.restore();
+    }
+  </script>
+</body>
+</html>
